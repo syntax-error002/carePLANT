@@ -1,20 +1,19 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { UploadCloud, X, Loader2 } from "lucide-react";
 import MainLayout from "@/components/main-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { diagnosePlant } from "@/ai/flows/diagnose-plant-flow";
 
 export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +49,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDiagnose = () => {
+  const handleDiagnose = async () => {
     if (!file || !preview) {
       toast({
         variant: "destructive",
@@ -59,43 +58,48 @@ export default function DashboardPage() {
       });
       return;
     }
-    setIsUploading(true);
-    
-    // Store image in local storage to pass to next page
-    localStorage.setItem("userUploadedImage", preview);
+    setIsDiagnosing(true);
 
-    // Simulate upload and analysis
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 95) {
-          return prev;
-        }
-        return prev + 5;
+    try {
+      // Store image in local storage to pass to next page
+      localStorage.setItem("userUploadedImage", preview);
+
+      const diagnosisResult = await diagnosePlant({
+        photoDataUri: preview,
+        description: "A photo of a plant leaf.",
       });
-    }, 100);
+      
+      // Store result to pass to next page
+      localStorage.setItem("diagnosisResult", JSON.stringify(diagnosisResult));
+      
+      // Navigate to a dynamic results page. We'll use a placeholder ID for now.
+      router.push("/diagnosis/result");
 
-    setTimeout(() => {
-      clearInterval(interval);
-      setUploadProgress(100);
-      setTimeout(() => {
-        // We'll always navigate to a mock diagnosis for this demo
-        router.push("/diagnosis/1");
-      }, 500);
-    }, 2000);
+    } catch (error) {
+      console.error("Diagnosis failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Diagnosis Failed",
+        description: "An error occurred during the diagnosis. Please try again.",
+      });
+    } finally {
+      setIsDiagnosing(false);
+    }
   };
   
   const clearFile = () => {
     setFile(null);
     setPreview(null);
-    setIsUploading(false);
-    setUploadProgress(0);
+    setIsDiagnosing(false);
     if(fileInputRef.current) {
         fileInputRef.current.value = "";
     }
   };
 
   const openFilePicker = () => {
-    fileInputRef.current?.click();
+    if (!isDiagnosing) {
+      fileInputRef.current?.click();
+    }
   }
 
   return (
@@ -112,7 +116,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div
-              className={`relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors
+              className={`relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg transition-colors
+                ${isDiagnosing ? 'cursor-not-allowed' : 'cursor-pointer'}
                 ${preview ? 'border-primary' : 'border-border hover:border-primary/50'}`}
               onDragOver={onDragOver}
               onDrop={onDrop}
@@ -121,15 +126,17 @@ export default function DashboardPage() {
               {preview ? (
                 <>
                   <Image src={preview} alt="Selected crop" fill style={{ objectFit: 'contain' }} className="p-2 rounded-lg" />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full z-10"
-                    onClick={(e) => { e.stopPropagation(); clearFile(); }}
-                    aria-label="Remove image"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  {!isDiagnosing && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full z-10"
+                      onClick={(e) => { e.stopPropagation(); clearFile(); }}
+                      aria-label="Remove image"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center text-muted-foreground">
@@ -147,19 +154,12 @@ export default function DashboardPage() {
                 className="hidden"
                 accept="image/png, image/jpeg, image/webp"
                 onChange={(e) => handleFileChange(e.target.files ? e.target.files[0] : null)}
-                disabled={isUploading}
+                disabled={isDiagnosing}
               />
             </div>
             
-            {isUploading && (
-              <div className="space-y-2">
-                <Progress value={uploadProgress} className="w-full" />
-                <p className="text-sm text-center text-muted-foreground">Diagnosing... Please wait.</p>
-              </div>
-            )}
-
-            <Button onClick={handleDiagnose} disabled={!file || isUploading} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-              {isUploading ? (
+            <Button onClick={handleDiagnose} disabled={!file || isDiagnosing} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+              {isDiagnosing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Diagnosing...

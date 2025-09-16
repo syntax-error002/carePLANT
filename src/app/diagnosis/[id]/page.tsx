@@ -2,8 +2,8 @@
 
 import {useState, useEffect} from 'react';
 import Image from 'next/image';
-import { notFound, useParams } from 'next/navigation';
-import { Leaf, TestTube2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Leaf, AlertCircle, Sparkles, Activity, ShieldCheck } from 'lucide-react';
 
 import MainLayout from '@/components/main-layout';
 import {
@@ -14,59 +14,102 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { getDiagnosisById, getDiseaseById } from '@/lib/data';
-import { generateDiseaseSummary, GenerateDiseaseSummaryOutput } from '@/ai/flows/generate-disease-summary';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { DiagnosePlantOutput } from '@/ai/flows/diagnose-plant-flow';
 
 export default function DiagnosisResultPage() {
-  const params = useParams();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
-
+  const router = useRouter();
   const [userImage, setUserImage] = useState<string | null>(null);
-  const [summaryData, setSummaryData] = useState<GenerateDiseaseSummaryOutput | null>(null);
+  const [diagnosisResult, setDiagnosisResult] = useState<DiagnosePlantOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const diagnosis = getDiagnosisById(id);
-  const disease = diagnosis ? getDiseaseById(diagnosis.diseaseId) : null;
 
   useEffect(() => {
     const storedImage = localStorage.getItem('userUploadedImage');
-    setUserImage(storedImage);
+    const storedResult = localStorage.getItem('diagnosisResult');
 
-    async function fetchSummary() {
-      if (disease) {
-        try {
-          const summary = await generateDiseaseSummary({
-            diseaseName: disease.name,
-            potentialCauses: disease.causes.join(', '),
-            recommendedActions: disease.treatment.organic.join('; '),
-          });
-          setSummaryData(summary);
-        } catch (error) {
-          console.error("Error generating summary:", error);
-          // Handle error appropriately, maybe set an error state
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setIsLoading(false);
-      }
+    if (!storedImage || !storedResult) {
+      // If data is missing, redirect to home to start over
+      router.replace('/');
+      return;
+    }
+    
+    setUserImage(storedImage);
+    try {
+      const parsedResult: DiagnosePlantOutput = JSON.parse(storedResult);
+      setDiagnosisResult(parsedResult);
+    } catch (e) {
+      console.error("Failed to parse diagnosis result", e);
+      router.replace('/'); // Or show an error
+    } finally {
+      setIsLoading(false);
     }
 
-    fetchSummary();
-  }, [id, disease]);
+  }, [router]);
 
-  if (!diagnosis || !disease) {
-    return notFound();
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+          <div className="flex items-center justify-between space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight font-headline">
+              Diagnosis Result
+            </h1>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <Skeleton className="h-6 w-3/4" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="aspect-video w-full" />
+                </CardContent>
+              </Card>
+              <Card className="lg:col-span-2">
+                 <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-10 w-full" />
+                  </CardContent>
+              </Card>
+               <Card className="lg:col-span-3">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-1/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </CardContent>
+              </Card>
+          </div>
+        </div>
+      </MainLayout>
+    )
   }
+
+  if (!diagnosisResult) {
+     return (
+      <MainLayout>
+        <div className="flex-1 p-4 md:p-8 pt-6">
+           <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                Could not load diagnosis result. Please try again.
+              </AlertDescription>
+            </Alert>
+        </div>
+      </MainLayout>
+     )
+  }
+
+  const { identification, diagnosis } = diagnosisResult;
 
   return (
     <MainLayout>
@@ -104,107 +147,57 @@ export default function DiagnosisResultPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-headline">
                 <Leaf className="text-primary" />
-                Disease Identification
+                Plant Identification
               </CardTitle>
               <CardDescription>
-                Based on our analysis of the provided image.
+                Based on our AI analysis of the provided image.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <h3 className="text-2xl font-semibold">{disease.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Confidence Level
-                </p>
-                <div className="flex items-center gap-4 mt-2">
-                  <Progress value={diagnosis.confidence} className="w-full" />
-                  <span className="font-bold text-lg text-primary">
-                    {diagnosis.confidence}%
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-2">Potential Causes</h4>
-                <div className="flex flex-wrap gap-2">
-                  {disease.causes.map((cause) => (
-                    <Badge key={cause} variant="secondary">
-                      {cause}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="font-headline">AI Summary</CardTitle>
-              <CardDescription>A concise summary generated by our AI expert.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              ) : summaryData ? (
-                 <p className="text-muted-foreground italic">
-                  "{summaryData.summary}"
-                </p>
-              ) : (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>
-                    Could not load AI summary.
-                  </AlertDescription>
-                </Alert>
-              )}
+                {identification.isPlant ? (
+                  <div>
+                    <h3 className="text-2xl font-semibold">{identification.commonName}</h3>
+                    <p className="text-sm text-muted-foreground italic">
+                      {identification.latinName}
+                    </p>
+                  </div>
+                ) : (
+                   <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Not a Plant</AlertTitle>
+                      <AlertDescription>
+                        Our AI could not identify a plant in the image.
+                      </AlertDescription>
+                    </Alert>
+                )}
             </CardContent>
           </Card>
 
           <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-headline">
-                <ShieldCheck className="text-accent" />
-                Treatment Recommendations
+                <Sparkles className="text-primary" />
+                AI Diagnosis
               </CardTitle>
-              <CardDescription>
-                Follow these steps to manage the disease. Organic options are
-                prioritized.
-              </CardDescription>
+              <CardDescription>A concise summary generated by our AI expert.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible defaultValue="organic">
-                <AccordionItem value="organic">
-                  <AccordionTrigger className="text-lg font-semibold text-green-700">
-                    Organic Treatments
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                      {disease.treatment.organic.map((step) => (
-                        <li key={step}>{step}</li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="chemical">
-                  <AccordionTrigger className="text-lg font-semibold text-orange-700">
-                    Chemical Treatments
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                      {disease.treatment.chemical.map((step) => (
-                        <li key={step}>{step}</li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                    <h4 className="font-semibold">Health Status:</h4>
+                    <Badge variant={diagnosis.isHealthy ? 'default' : 'destructive'} className={diagnosis.isHealthy ? 'bg-green-600' : ''}>
+                        {diagnosis.isHealthy ? 'Healthy' : 'Needs Attention'}
+                    </Badge>
+                </div>
+                <Alert>
+                  <Activity className="h-4 w-4" />
+                  <AlertTitle>Assessment</AlertTitle>
+                  <AlertDescription>
+                     {diagnosis.diagnosis}
+                  </AlertDescription>
+                </Alert>
             </CardContent>
           </Card>
+
         </div>
       </div>
     </MainLayout>
