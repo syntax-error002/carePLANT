@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Home,
-  History,
   Library,
 } from 'lucide-react';
 
@@ -26,7 +25,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   const menuItems = [
     { href: '/', label: 'Diagnose', icon: Home },
-    { href: '/history', label: 'History', icon: History },
     { href: '/knowledge-base', label: 'Knowledge Base', icon: Library },
   ];
 

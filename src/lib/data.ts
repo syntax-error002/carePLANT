@@ -1,4 +1,4 @@
-import type { Disease, DiagnosisHistory } from './types';
+import type { Disease } from './types';
 
 export const DISEASES: Disease[] = [
   {
@@ -146,44 +146,10 @@ export const DISEASES: Disease[] = [
   },
 ];
 
-export const DIAGNOSIS_HISTORY: DiagnosisHistory[] = [
-  {
-    id: '1',
-    date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(),
-    diseaseName: 'Late Blight',
-    confidence: 92,
-    imageUrl: 'https://picsum.photos/seed/201/200/200',
-    imageHint: 'plant disease',
-    diseaseId: '1',
-  },
-  {
-    id: '2',
-    date: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString(),
-    diseaseName: 'Powdery Mildew',
-    confidence: 85,
-    imageUrl: 'https://picsum.photos/seed/202/200/200',
-    imageHint: 'white fungus leaf',
-    diseaseId: '2',
-  },
-  {
-    id: '3',
-    date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString(),
-    diseaseName: 'Black Spot',
-    confidence: 88,
-    imageUrl: 'https://picsum.photos/seed/203/200/200',
-    imageHint: 'rose leaf spot',
-    diseaseId: '4',
-  },
-];
-
 export function getDiseaseBySlug(slug: string): Disease | undefined {
   return DISEASES.find((disease) => disease.slug === slug);
 }
 
 export function getDiseaseById(id: string): Disease | undefined {
   return DISEASES.find((disease) => disease.id === id);
-}
-
-export function getDiagnosisById(id: string): DiagnosisHistory | undefined {
-  return DIAGNOSIS_HISTORY.find((record) => record.id === id);
 }

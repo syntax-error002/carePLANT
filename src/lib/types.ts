@@ -13,13 +13,3 @@ export type Disease = {
   imageUrl: string;
   imageHint: string;
 };
-
-export type DiagnosisHistory = {
-  id: string;
-  date: string;
-  diseaseName: string;
-  confidence: number;
-  imageUrl: string;
-  imageHint: string;
-  diseaseId: string;
-};
