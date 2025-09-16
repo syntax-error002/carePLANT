@@ -51,7 +51,7 @@ export default function DashboardPage() {
   };
 
   const handleDiagnose = () => {
-    if (!file) {
+    if (!file || !preview) {
       toast({
         variant: "destructive",
         title: "No file selected",
@@ -61,6 +61,9 @@ export default function DashboardPage() {
     }
     setIsUploading(true);
     
+    // Store image in local storage to pass to next page
+    localStorage.setItem("userUploadedImage", preview);
+
     // Simulate upload and analysis
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
