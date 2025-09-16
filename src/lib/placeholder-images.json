@@ -1,3 +1,35 @@
+
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "late-blight-tomato",
+      "imageUrl": "https://picsum.photos/seed/101/800/600",
+      "imageHint": "diseased tomato"
+    },
+    {
+      "id": "powdery-mildew-squash",
+      "imageUrl": "https://picsum.photos/seed/102/800/600",
+      "imageHint": "diseased squash"
+    },
+    {
+      "id": "leaf-rust-wheat",
+      "imageUrl": "https://picsum.photos/seed/103/800/600",
+      "imageHint": "diseased wheat"
+    },
+    {
+      "id": "black-spot-rose",
+      "imageUrl": "https://picsum.photos/seed/104/800/600",
+      "imageHint": "diseased rose"
+    },
+    {
+      "id": "corn-smut",
+      "imageUrl": "https://picsum.photos/seed/105/800/600",
+      "imageHint": "diseased corn"
+    },
+    {
+      "id": "user-upload-1",
+      "imageUrl": "https://picsum.photos/seed/201/800/600",
+      "imageHint": "plant disease"
+    }
+  ]
 }

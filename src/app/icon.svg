@@ -1,0 +1,10 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="100" height="100" rx="20" fill="#8FBC8F"/>
+<path d="M50 25C50 25 50 40 35 45C20 50 20 65 20 65M50 25C50 25 50 40 65 45C80 50 80 65 80 65M50 25V50M50 50C50 50 50 75 30 85C30 85 50 90 70 85C70 85 50 75 50 50Z" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" class="stroke-primary-foreground" stroke="#263A26"/>
+<style>
+  .stroke-primary-foreground { stroke: hsl(120 25% 15%); }
+  @media (prefers-color-scheme: dark) {
+    .stroke-primary-foreground { stroke: hsl(120 25% 15%); }
+  }
+</style>
+</svg>
