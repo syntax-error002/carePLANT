@@ -3,7 +3,7 @@
 import {useState, useEffect} from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Leaf, AlertCircle, Sparkles, Activity, ShieldCheck } from 'lucide-react';
+import { Leaf, AlertCircle, Sparkles, Activity } from 'lucide-react';
 
 import MainLayout from '@/components/main-layout';
 import {

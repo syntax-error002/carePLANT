@@ -72,8 +72,7 @@ export default function DashboardPage() {
       // Store result to pass to next page
       localStorage.setItem("diagnosisResult", JSON.stringify(diagnosisResult));
       
-      // Navigate to a dynamic results page. We'll use a placeholder ID for now.
-      router.push("/diagnosis/result");
+      router.push("/diagnosis");
 
     } catch (error) {
       console.error("Diagnosis failed:", error);
