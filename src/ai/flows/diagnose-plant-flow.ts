@@ -61,7 +61,12 @@ const diagnosePlantFlow = ai.defineFlow(
     outputSchema: DiagnosePlantOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const result = await prompt(input);
+    const output = result.output;
+    if (!output) {
+      console.error('AI prompt failed to return a valid output.', result);
+      throw new Error('Diagnosis failed because the AI model could not process the request.');
+    }
+    return output;
   }
 );
