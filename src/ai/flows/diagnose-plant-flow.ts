@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {DISEASES} from '@/lib/data';
 
 const DiagnosePlantInputSchema = z.object({
   photoDataUri: z
@@ -37,9 +38,14 @@ export async function diagnosePlant(input: DiagnosePlantInput): Promise<Diagnose
   return diagnosePlantFlow(input);
 }
 
+const PromptInputSchema = z.object({
+  ...DiagnosePlantInputSchema.shape,
+  diseases: z.string(),
+});
+
 const prompt = ai.definePrompt({
   name: 'diagnosePlantPrompt',
-  input: {schema: DiagnosePlantInputSchema},
+  input: {schema: PromptInputSchema},
   output: {schema: DiagnosePlantOutputSchema},
   prompt: `You are an expert botanist specializing in diagnosing plant illnesses from images.
 
@@ -51,7 +57,10 @@ You will be given an image of a plant and a short description. Your tasks are:
 Use the following as the primary source of information about the plant.
 
 Description: {{{description}}}
-Photo: {{media url=photoDataUri}}`,
+Photo: {{media url=photoDataUri}}
+
+Here is a list of known diseases you should use for your diagnosis:
+{{{diseases}}}`,
 });
 
 const diagnosePlantFlow = ai.defineFlow(
@@ -61,7 +70,8 @@ const diagnosePlantFlow = ai.defineFlow(
     outputSchema: DiagnosePlantOutputSchema,
   },
   async input => {
-    const result = await prompt(input);
+    const diseases = JSON.stringify(DISEASES);
+    const result = await prompt({...input, diseases});
     const output = result.output;
     if (!output) {
       console.error('AI prompt failed to return a valid output.', result);
