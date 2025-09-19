@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Camera, Loader2, Leaf, AlertCircle, Sparkles, Activity } from 'lucide-react';
+import { useState } from 'react';
+import { Upload, Loader2, Leaf, AlertCircle, Sparkles, Activity, X } from 'lucide-react';
 import MainLayout from '@/components/main-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,135 +11,139 @@ import { diagnosePlant, DiagnosePlantOutput } from '@/ai/flows/diagnose-plant-fl
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
 export default function DashboardPage() {
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosePlantOutput | null>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useState<HTMLInputElement>(null);
+
   const { toast } = useToast();
 
-  useEffect(() => {
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        setHasCameraPermission(true);
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this feature.',
-        });
-      }
-    };
-
-    getCameraPermission();
-    
-    return () => {
-        // Stop camera stream when component unmounts
-        if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-        }
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+        setDiagnosisResult(null);
+      };
+      reader.readAsDataURL(file);
     }
-  }, [toast]);
-
+  };
 
   const handleDiagnose = async () => {
-    if (!videoRef.current || !canvasRef.current) {
+    if (!selectedImage) {
       toast({
-        variant: "destructive",
-        title: "Camera not ready",
-        description: "Please wait for the camera to load.",
+        variant: 'destructive',
+        title: 'No Image Selected',
+        description: 'Please upload an image of a plant to diagnose.',
       });
       return;
     }
-    
+
     setIsDiagnosing(true);
     setDiagnosisResult(null);
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext('2d');
-    
-    if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const photoDataUri = canvas.toDataURL('image/jpeg');
-
-        try {
-            const result = await diagnosePlant({
-                photoDataUri,
-                description: "A photo of a plant captured from a live camera feed.",
-            });
-            setDiagnosisResult(result);
-        } catch (error) {
-            console.error("Diagnosis failed:", error);
-            toast({
-                variant: "destructive",
-                title: "Diagnosis Failed",
-                description: "An error occurred during the diagnosis. Please try again.",
-            });
-        } finally {
-            setIsDiagnosing(false);
-        }
-    } else {
-        setIsDiagnosing(false);
-        toast({
-            variant: "destructive",
-            title: "Could not capture image",
-            description: "Failed to get image from video stream.",
-        });
+    try {
+      const result = await diagnosePlant({
+        photoDataUri: selectedImage,
+        description: 'A photo of a plant uploaded by a user.',
+      });
+      setDiagnosisResult(result);
+    } catch (error) {
+      console.error('Diagnosis failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Diagnosis Failed',
+        description: 'An error occurred during the diagnosis. Please try again.',
+      });
+    } finally {
+      setIsDiagnosing(false);
     }
   };
+  
+  const clearImage = () => {
+      setSelectedImage(null);
+      setDiagnosisResult(null);
+      if(fileInputRef.current) {
+          fileInputRef.current.value = '';
+      }
+  }
+
 
   return (
     <MainLayout>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h1 className="text-3xl font-bold tracking-tight font-headline">
-            Live Plant Diagnosis
+            Plant Diagnosis
           </h1>
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Camera className="text-primary"/> Camera Feed</CardTitle>
-                <CardDescription>Point your camera at a plant and click scan.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="aspect-video relative rounded-lg overflow-hidden border bg-muted">
-                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                    <canvas ref={canvasRef} className="hidden" />
-                </div>
-                {hasCameraPermission === false && (
-                    <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Camera Access Required</AlertTitle>
-                    <AlertDescription>
-                        Please allow camera access in your browser settings to use this feature. You may need to refresh the page.
-                    </AlertDescription>
-                    </Alert>
-                )}
-                <Button onClick={handleDiagnose} disabled={isDiagnosing || hasCameraPermission !== true} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                {isDiagnosing ? (
-                    <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Diagnosing...
-                    </>
-                ) : (
-                    "Scan Plant"
-                )}
-                </Button>
-            </CardContent>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Upload className="text-primary"/> Upload a Photo</CardTitle>
+                    <CardDescription>Select a photo of your plant for AI analysis.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="aspect-video relative rounded-lg overflow-hidden border bg-muted flex items-center justify-center">
+                        {selectedImage ? (
+                            <>
+                                <Image src={selectedImage} alt="Uploaded Plant" layout="fill" objectFit="cover" />
+                                <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-2 right-2 h-7 w-7"
+                                    onClick={clearImage}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </>
+                        ) : (
+                            <div className="text-center text-muted-foreground">
+                                <Leaf className="mx-auto h-12 w-12" />
+                                <p className="mt-2">Image preview will appear here</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isDiagnosing}
+                        >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Choose Image
+                        </Button>
+                        <Button 
+                            onClick={handleDiagnose} 
+                            disabled={isDiagnosing || !selectedImage} 
+                            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                        >
+                        {isDiagnosing ? (
+                            <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Diagnosing...
+                            </>
+                        ) : (
+                            "Diagnose Plant"
+                        )}
+                        </Button>
+                    </div>
+                </CardContent>
             </Card>
 
             <Card>
@@ -200,7 +204,7 @@ export default function DashboardPage() {
                     {!isDiagnosing && !diagnosisResult && (
                         <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-48">
                             <Leaf className="w-10 h-10 mb-4" />
-                            <p>Scan a plant to get started.</p>
+                            <p>Upload a plant photo to get started.</p>
                         </div>
                     )}
                 </CardContent>
