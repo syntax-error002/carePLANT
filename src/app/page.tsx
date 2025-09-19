@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, Loader2, Leaf, AlertCircle, Sparkles, Activity, X } from 'lucide-react';
 import MainLayout from '@/components/main-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosePlantOutput | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const fileInputRef = useState<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
 
