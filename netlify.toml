@@ -1,0 +1,2 @@
+[build.context.production.environment]
+  GOOGLE_API_KEY = "Your Google AI API key"
